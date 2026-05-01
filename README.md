@@ -35,7 +35,11 @@ dl.get_nsd('path_to_desired_download_location')
 
 ### Download RCNN weights
 
-Analyses based on RCNN models require downloading the RCNN weights. They will be uploaded soon. In the interval, feel free to send an email to the paper's corresponding author.
+Analyses based on RCNN models require downloading the RCNN weights. They can be found here:
+👉 https://natural-scenes-dataset.s3.amazonaws.com/index.html#other/blt_mpnet_weights/
+
+The following github repo contains light-weight code to load and use the networks on custom images:
+👉 https://github.com/adriendoerig/blt_mpnet/tree/main
 
 
 ### Running analyses
