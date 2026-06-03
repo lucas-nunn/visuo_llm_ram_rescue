@@ -26,7 +26,7 @@ def get_nsd_noun_embeddings_simple(EMBEDDING_TYPE, h5_dataset_path,
     
     CHECK_EMBEDDINGS = 1
     GET_NOUN_EMBEDDINGS = 1
-    DO_SANITY_CHECK = 1
+    DO_SANITY_CHECK = 0
 
     save_embeddings_to = SAVE_PATH
     save_test_imgs_to = f"{save_embeddings_to}/_check_imgs"

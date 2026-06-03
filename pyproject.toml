@@ -1,10 +1,51 @@
 [build-system]
-requires = ["setuptools>=42.0.0", "wheel", "setuptools_scm"]
+requires = ["setuptools>=77.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[project]
+name = "nsd-visuo-semantics"
+version = "0.1.0"  # Specify version directly (or use dynamic versioning if needed)
+description = "Code to reproduce results from Doerig et al. Semantic scene descriptions as an objective of the human visual system"
+authors = [{name = "Adrien Doerig", email = "adrien.doerig@uni-osnabrueck.de"}]
+readme = "README.md"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+dependencies = [
+    "boto3>=1.42.97",
+    "ipykernel>=6.31.0",
+    "jupyter>=1.1.1",
+    "matplotlib>=3.9.4",
+    "nltk>=3.9.2",
+    "numpy>=2.0.2",
+    "pandas>=2.3.3",
+    "pytorch-triton-rocm>=3.5.1 ; sys_platform == 'linux' and platform_machine == 'x86_64' and python_version >= '3.10'",
+    "pycocotools>=2.0.11",
+    "sentence-transformers>=5.1.2",
+    "setuptools<82",
+    "tensorflow>=2.20.0",
+    "tensorflow-hub>=0.16.1",
+    "torch==2.11.* ; sys_platform == 'linux' and platform_machine == 'x86_64' and python_version >= '3.10'",
+    "torchaudio==2.11.* ; sys_platform == 'linux' and platform_machine == 'x86_64' and python_version >= '3.10'",
+    "torchvision==0.26.* ; sys_platform == 'linux' and platform_machine == 'x86_64' and python_version >= '3.10'",
+    "triton-rocm>=3.6.0 ; sys_platform == 'linux' and platform_machine == 'x86_64' and python_version >= '3.10'",
+]
 
-[tool.setuptools_scm]
-write_to = "src/nsd_visuo_semantics/_version.py"
+[project.urls]
+"Bug Tracker" = "https://github.com/KietzmannLab/nsd_visuo_semantics/issues"
+Documentation = "https://github.com/KietzmannLab/nsd_visuo_semantics#README.md"
+"Source Code" = "https://github.com/KietzmannLab/nsd_visuo_semantics"
+"User Support" = "https://github.com/KietzmannLab/nsd_visuo_semantics/issues"
+
+[project.entry-points."kietzmannlab.manifest"]
+nsd_visuo_semantics = "nsd_visuo_semantics:kietzmannlab.yaml"
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "isort",
+    "pytest",
+]
 
 [tool.black]
 line-length = 79
@@ -12,3 +53,40 @@ line-length = 79
 [tool.isort]
 profile = "black"
 line_length = 79
+
+[tool.setuptools]
+include-package-data = true
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"*" = ["*.yaml"]
+
+[tool.uv]
+environments = [
+    "sys_platform == 'linux' and platform_machine == 'x86_64' and python_version >= '3.10'",
+]
+
+[tool.uv.sources]
+torch = [
+    {index = "pytorch-rocm", marker = "sys_platform == 'linux' and platform_machine == 'x86_64' and python_version >= '3.10'"},
+]
+torchvision = [
+    {index = "pytorch-rocm", marker = "sys_platform == 'linux' and platform_machine == 'x86_64' and python_version >= '3.10'"},
+]
+torchaudio = [
+    {index = "pytorch-rocm", marker = "sys_platform == 'linux' and platform_machine == 'x86_64' and python_version >= '3.10'"},
+]
+pytorch-triton-rocm = [
+    {index = "pytorch-rocm", marker = "sys_platform == 'linux' and platform_machine == 'x86_64' and python_version >= '3.10'"},
+]
+triton-rocm = [
+    {index = "pytorch-rocm", marker = "sys_platform == 'linux' and platform_machine == 'x86_64' and python_version >= '3.10'"},
+]
+
+[[tool.uv.index]]
+name = "pytorch-rocm"
+url = "https://download.pytorch.org/whl/rocm7.2"
+explicit = true

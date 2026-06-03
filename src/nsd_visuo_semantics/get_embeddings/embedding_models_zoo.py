@@ -1,8 +1,8 @@
 import os
 import numpy as np
+from sentence_transformers import SentenceTransformer
 import tensorflow as tf
 import tensorflow_hub as hub
-from sentence_transformers import SentenceTransformer
 
 
 def get_embedding_model(embedding_model_type):

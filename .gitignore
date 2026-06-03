@@ -1,3 +1,8 @@
+data/
+blt_mpnet/
+lucas_exploration/input/crawl-300d-2M.vec
+lucas_exploration/input/glove.840B.300d.txt
+
 # Custom
 src/nsd_visuo_semantics/get_embeddings/crawl-300d-2M.vec
 src/nsd_visuo_semantics/get_embeddings/glove.840B.300d.txt

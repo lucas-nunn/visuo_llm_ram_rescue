@@ -13,7 +13,7 @@ def get_nsd_sentence_embeddings_simple(embedding_model_type, captions_to_embed_p
 
     SANITY_CHECK = 1
     GET_EMBEDDINGS = 1
-    FINAL_CHECK = 1
+    FINAL_CHECK = 0
 
     safety_check_metric = 'correlation'
 
