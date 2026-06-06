@@ -22,7 +22,7 @@ def nsd_searchlight_main_tf(MODEL_NAMES, rdm_distance,
 
     # fixed parameters
     radius = 6
-    n_sessions = 40
+    n_sessions = 5
     targetspace = "func1pt8mm"
 
     # set up directories

@@ -157,6 +157,7 @@ def get_betas(nsd_dir, sub, n_sessions, mask=None, targetspace="func1pt8mm"):
     data_folder = os.path.join(nsddata_betas_folder, sub, targetspace, "betas_fithrf_GLMdenoise_RR")
 
     betas = []
+    ram_rescue = []
     # loop over sessions
     for ses in range(n_sessions):
         ses_i = ses + 1
@@ -194,10 +195,17 @@ def get_betas(nsd_dir, sub, n_sessions, mask=None, targetspace="func1pt8mm"):
                 if mask is not None:
                     betas.append((zscore(img/300., axis=cond_axis)[mask, :]).astype(np.float32))
                 else:
-                    betas.append((zscore(img/300., axis=cond_axis)).astype(np.float32))
-
+                    img = img/300.
+                    img = zscore(img, axis=cond_axis)
+                    img = img.astype(np.float32)
+                    name = os.path.join(data_folder, f"betas_session{si_str}_zscored.npy")
+                    ram_rescue.append(name)
+                    np.save(name, img)
             else:
                 raise Exception("targetspace not recognized")
+
+    for rescue in ram_rescue:
+        betas.append(np.load(rescue))
 
     return betas
 

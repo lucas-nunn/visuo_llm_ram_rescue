@@ -7,7 +7,7 @@ from nsd_visuo_semantics.get_embeddings.embedding_models_zoo import get_embeddin
 
 
 def get_nsd_sentence_embeddings_categories_simple(embedding_model_type, captions_to_embed_path, 
-                                                  h5_dataset_path, SAVE_PATH, OVERWRITE):
+                                                  categories, SAVE_PATH, OVERWRITE):
     '''
     Concatenates the coco categories into a string, and throws that into a sentence embedder.
     There is the option to only keep the coco categories that are also present/absent in the captions.
@@ -46,9 +46,6 @@ def get_nsd_sentence_embeddings_categories_simple(embedding_model_type, captions
             with open(captions_to_embed_path, "rb") as fp:
                 loaded_captions = pickle.load(fp)
 
-            with h5py.File(h5_dataset_path,'r') as f:
-                loaded_multihot_labels = f['test']['img_multi_hot'][:]
-
             n_elements = len(loaded_captions)
             dummy_embeddings = get_embeddings(loaded_captions[0], embedding_model, embedding_model_type)
 
@@ -68,7 +65,7 @@ def get_nsd_sentence_embeddings_categories_simple(embedding_model_type, captions
                     # with a single element
                     these_captions = [these_captions]
 
-                img_category_words = get_words_from_multihot(loaded_multihot_labels[i], coco_categories_91)
+                img_category_words = categories[i]
 
                 # first, we keep all categories
                 if len(img_category_words) == 0:
@@ -88,25 +85,3 @@ def get_nsd_sentence_embeddings_categories_simple(embedding_model_type, captions
         del mean_embeddings_all, cats_per_image
             
 
-    if FINAL_CHECK:
-        with h5py.File(h5_dataset_path, "r") as h5_dataset:
-            total_n_stims = h5_dataset["test"]["labels"][:].shape[0]
-            plot_n_imgs = 10
-            step_size = total_n_stims // plot_n_imgs
-
-            with open(captions_to_embed_path, "rb") as fp:
-                loaded_captions = pickle.load(fp)
-            with open(f"{save_embeddings_to}/{save_name}_allCats.pkl", "rb") as fp:
-                loaded_mean_embeddings = pickle.load(fp)
-            with open(f"{save_embeddings_to}/{save_name}_categs_per_image.pkl", "rb") as fp:
-                loaded_cats_per_image = pickle.load(fp)
-
-            for i in range(0, total_n_stims, step_size):
-                plt.imshow(h5_dataset["test"]["data"][i])
-                plt.title(
-                    f"{loaded_captions[i][0]}\n"
-                    f"{loaded_cats_per_image[i]}\n"
-                    f"Emb shape, min, max, mean: {loaded_mean_embeddings[i].shape, loaded_mean_embeddings[i].min(), loaded_mean_embeddings[i].max(), loaded_mean_embeddings[i].mean()}"
-                )
-                plt.savefig(f"{save_test_imgs_to}/{save_name}_check_{i}.png")
-                plt.close()

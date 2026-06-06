@@ -29,6 +29,10 @@ dependencies = [
     "torchaudio==2.11.* ; sys_platform == 'linux' and platform_machine == 'x86_64' and python_version >= '3.10'",
     "torchvision==0.26.* ; sys_platform == 'linux' and platform_machine == 'x86_64' and python_version >= '3.10'",
     "triton-rocm>=3.6.0 ; sys_platform == 'linux' and platform_machine == 'x86_64' and python_version >= '3.10'",
+    "nsd-access",
+    "nsdcode==1.1.dev260054000",
+    "cortex>=0.42.1",
+    "statsmodels>=0.14.6",
 ]
 
 [project.urls]
@@ -85,6 +89,13 @@ pytorch-triton-rocm = [
 triton-rocm = [
     {index = "pytorch-rocm", marker = "sys_platform == 'linux' and platform_machine == 'x86_64' and python_version >= '3.10'"},
 ]
+nsd-access = { git = "https://github.com/tknapen/nsd_access.git" }
+
+[[tool.uv.dependency-metadata]]
+name = "nsdcode"
+version = "1.1.dev260054000"
+requires-python = ">=3.6"
+requires-dist = ["nibabel", "numpy", "scipy", "tqdm"]
 
 [[tool.uv.index]]
 name = "pytorch-rocm"

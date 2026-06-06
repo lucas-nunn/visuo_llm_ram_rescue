@@ -9,7 +9,7 @@ from nsd_visuo_semantics.get_embeddings.embedding_models_zoo import load_word_ve
 from nsd_visuo_semantics.get_embeddings.nsd_embeddings_utils import get_words_from_multihot
 
 
-def get_nsd_category_embeddings_simple(EMBEDDING_TYPE, h5_dataset_path, 
+def get_nsd_category_embeddings_simple(EMBEDDING_TYPE, categories, 
                                        fasttext_embeddings_path, glove_embeddings_path, 
                                        nsd_captions_path, SAVE_PATH, OVERWRITE):
     '''
@@ -27,7 +27,7 @@ def get_nsd_category_embeddings_simple(EMBEDDING_TYPE, h5_dataset_path,
     
     CHECK_EMBEDDINGS = 1
     GET_WORD_EMBEDDINGS = 1
-    DO_SANITY_CHECK = 1
+    DO_SANITY_CHECK = 0
 
     save_embeddings_to = SAVE_PATH
     save_test_imgs_to = f"{save_embeddings_to}/_check_imgs"
@@ -70,9 +70,6 @@ def get_nsd_category_embeddings_simple(EMBEDDING_TYPE, h5_dataset_path,
                 loaded_captions = pickle.load(fp)
             n_elements = len(loaded_captions)
 
-            with h5py.File(h5_dataset_path,'r') as f:
-                loaded_multihot_labels = f['test']['img_multi_hot'][:]
-
             coco_cat_embeds = {}
             for c, cat in enumerate(coco_categories_91):
                 if cat == "baseball-bat":
@@ -98,9 +95,8 @@ def get_nsd_category_embeddings_simple(EMBEDDING_TYPE, h5_dataset_path,
                 if i % 100 == 0:
                     print(f"\rRunning... {i/n_elements*100:.2f}%", end="")
 
-                img_category_labels = loaded_multihot_labels[i]
                 these_embeds = []
-                these_words = get_words_from_multihot(img_category_labels, coco_categories_91)
+                these_words = categories[i]
                 these_embeds = [coco_cat_embeds[w] for w in these_words]
                 final_categ_words.append(these_words)
                 final_categ_embeddings[i] = np.mean(np.asarray(these_embeds), axis=0)
@@ -111,27 +107,3 @@ def get_nsd_category_embeddings_simple(EMBEDDING_TYPE, h5_dataset_path,
                 pickle.dump(final_categ_words, fp)
 
         del embeddings, final_categ_embeddings, final_categ_words  # make space
-
-    if DO_SANITY_CHECK:
-        print("Sanity check for embeddings")
-        with h5py.File(h5_dataset_path, "r") as h5_dataset:
-            total_n_stims = h5_dataset["test"]["labels"][:].shape[0]
-            plot_n_imgs = 10
-            step_size = total_n_stims // plot_n_imgs
-
-            with open(nsd_captions_path, "rb") as fp:
-                loaded_captions = pickle.load(fp)
-            with open(f"{save_embeddings_to}/{save_name}.pkl", "rb",) as fp:
-                loaded_mean_embeddings = pickle.load(fp)
-            with open(f"{save_embeddings_to}/nsd_categ_words_per_image.pkl", "rb") as fp:
-                loaded_cats_per_image = pickle.load(fp)
-
-            for i in range(0, total_n_stims, step_size):
-                plt.imshow(h5_dataset["test"]["data"][i])
-                plt.title(
-                    f"{loaded_captions[i][0]}\n"
-                    f"{loaded_cats_per_image[i]}\n"
-                    f"Emb shape, min, max, mean: {loaded_mean_embeddings[i].shape, loaded_mean_embeddings[i].min(), loaded_mean_embeddings[i].max(), loaded_mean_embeddings[i].mean()}"
-                )
-                plt.savefig(f"{save_test_imgs_to}/{save_name}_check_{i}.png")
-                plt.close()
