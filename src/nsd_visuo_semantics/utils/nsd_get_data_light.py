@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 from scipy.stats import zscore
+from numpy.lib.format import open_memmap
 # from nsd_visuo_semantics.utils.utils import average_over_conditions
 
 
@@ -94,7 +95,7 @@ def read_behavior(nsd_dir, subject, session_index, trial_index=[]):
     return session_behavior.iloc[trial_index]
 
 
-def average_over_conditions(data, conditions, conditions_to_avg):
+def average_over_conditions(data, conditions, conditions_to_avg, sub):
     lookup = np.unique(conditions_to_avg)
     n_conds = lookup.shape[0]
     n_dims = data.ndim
@@ -104,7 +105,7 @@ def average_over_conditions(data, conditions, conditions_to_avg):
         avg_data = np.empty((n_voxels, n_conds))
     else:
         x, y, z, _ = data.shape
-        avg_data = np.empty((x, y, z, n_conds))
+        avg_data = open_memmap(f"betas_{sub}_averaged.npy", mode='w+', dtype=np.float32, shape=(x, y, z, n_conds)) 
 
     for j, x in enumerate(lookup):
         conditions_bool = conditions == x
@@ -119,11 +120,12 @@ def average_over_conditions(data, conditions, conditions_to_avg):
             avg_data[:, :, :, j] = np.nanmean(
                 data[:, :, :, conditions_bool], axis=3
             )
+            avg_data.flush()
 
     return avg_data
 
 
-def load_or_compute_betas_average(betas_file, nsd_dir, subj, n_sessions, conditions, conditions_sampled, targetspace):
+def load_or_compute_betas_average(betas_file, nsd_dir, subj, n_sessions, conditions, conditions_sampled, targetspace, subj_sample_pool=None):
     
     if not os.path.exists(betas_file):
         print('betas average not found, computing..')
@@ -132,13 +134,9 @@ def load_or_compute_betas_average(betas_file, nsd_dir, subj, n_sessions, conditi
         # get betas
         betas = get_betas(nsd_dir, subj, n_sessions, targetspace=targetspace)
 
-        # concatenate trials
-        print('\tconcatenating betas across runs..')
-        betas = np.concatenate(betas, axis=-1)
-
         # average betas across three repeats
         print(f'\taveraging betas for {subj}')
-        betas = average_over_conditions(betas, conditions, conditions_sampled)
+        betas = average_over_conditions(betas, conditions, conditions_sampled, subj)
 
         # saving betas
         print(f'saving betas for {subj}')
@@ -157,7 +155,8 @@ def get_betas(nsd_dir, sub, n_sessions, mask=None, targetspace="func1pt8mm"):
     data_folder = os.path.join(nsddata_betas_folder, sub, targetspace, "betas_fithrf_GLMdenoise_RR")
 
     betas = []
-    ram_rescue = []
+    total_con = 0
+
     # loop over sessions
     for ses in range(n_sessions):
         ses_i = ses + 1
@@ -189,25 +188,39 @@ def get_betas(nsd_dir, sub, n_sessions, mask=None, targetspace="func1pt8mm"):
             elif targetspace == "func1pt8mm":
                 # we will need to divide the loaded data by 300 in this case
                 cond_axis = -1
-                img = nb.load(os.path.join(data_folder, f"betas_session{si_str}.nii.gz")).get_fdata().squeeze()
+
+                img = nb.load(os.path.join(data_folder, f"betas_session{si_str}.nii.gz"))
+                out = open_memmap(f"betas_{sub}_{si_str}.npy", mode='w+', dtype=np.float32, shape=img.shape)
+                X, _, _, n_cond = img.shape
+                total_con += n_cond
+
                 # img = nb.load(os.path.join(data_folder, f"betas_session{si_str}.nii.gz"))
                 # re-hash the betas to save memory
                 if mask is not None:
                     betas.append((zscore(img/300., axis=cond_axis)[mask, :]).astype(np.float32))
                 else:
-                    img = img/300.
-                    img = zscore(img, axis=cond_axis)
-                    img = img.astype(np.float32)
-                    name = os.path.join(data_folder, f"betas_session{si_str}_zscored.npy")
-                    ram_rescue.append(name)
-                    np.save(name, img)
+                    for x in range(X):
+                        print("percent complete: ", round(x/X*100, 2), end='\r')
+                        block = np.asarray(img.dataobj[x, :, :, :], dtype=np.float32)
+                        block = block / 300.
+                        block = zscore(block, axis=cond_axis)
+                        out[x, :, :, :] = block
+
+                    out.flush()
+                    betas.append(out)
             else:
                 raise Exception("targetspace not recognized")
 
-    for rescue in ram_rescue:
-        betas.append(np.load(rescue))
-
-    return betas
+    ram_rescue_betas = open_memmap(f"betas_{sub}_all_sessions.npy", mode='w+', dtype=np.float32, shape=betas[0].shape[:3] + (total_con,))
+    
+    start = 0
+    for beta in betas:
+        end = start + beta.shape[-1]
+        ram_rescue_betas[:, :, :, start:end] = beta
+        start = end
+        ram_rescue_betas.flush()
+    
+    return ram_rescue_betas
 
 
 def get_conditions(nsd_dir, sub, n_sessions):

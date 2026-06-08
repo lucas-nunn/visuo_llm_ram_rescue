@@ -3,6 +3,7 @@ import tensorflow as tf
 
 from nsd_visuo_semantics.utils.tf_utils import chunking as ch
 from nsd_visuo_semantics.utils.tf_utils import compute_rdm_batch
+from numpy.lib.format import open_memmap
 
 
 def tf_searchlight(betas_sampled, indices, sorted_indices, batch_size=50):
@@ -30,7 +31,9 @@ def tf_searchlight(betas_sampled, indices, sorted_indices, batch_size=50):
     # start_time = time.time()
     rdms = []
     for i, ind in enumerate(sorted_indices):
+        print(f'processing sphere {i} out of {len(sorted_indices)}')
         chunks = ch(ind, batch_size)
+
         for c, chunk in enumerate(chunks):
             # line below is from a previous version where we were not using sorted indices
             # here, we DO use them. i.e., we get a list of sorted_indices, where all
@@ -50,6 +53,5 @@ def tf_searchlight(betas_sampled, indices, sorted_indices, batch_size=50):
     # )
 
     # return to CPU
-    rdms_np = np.vstack(rdms)
 
-    return rdms_np
+    return np.vstack(rdms)

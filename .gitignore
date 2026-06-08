@@ -2,6 +2,7 @@ data/
 blt_mpnet/
 lucas_exploration/input/
 lucas_exploration/results/
+freesurfer*
 
 # Custom
 src/nsd_visuo_semantics/get_embeddings/crawl-300d-2M.vec
@@ -36,6 +37,8 @@ __pycache__/
 # Distribution / packaging
 .Python
 env/
+.venv/
+.venv-rocm/
 build/
 develop-eggs/
 dist/

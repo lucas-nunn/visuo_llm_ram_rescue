@@ -21,7 +21,7 @@ def nsd_project_fsaverage(MODEL_NAMES, models_rdm_distance, nsd_dir, base_save_d
     fs_dir = os.path.join(nsd.base_dir, "nsddata", "freesurfer", "fsaverage")
 
     # fixed parameters
-    n_subjects = 8
+    n_subjects = 1
 
     # per subject vox sizes
     voxelsizes = [

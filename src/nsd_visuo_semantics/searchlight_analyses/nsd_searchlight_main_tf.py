@@ -22,7 +22,7 @@ def nsd_searchlight_main_tf(MODEL_NAMES, rdm_distance,
 
     # fixed parameters
     radius = 6
-    n_sessions = 5
+    n_sessions = 20
     targetspace = "func1pt8mm"
 
     # set up directories
@@ -109,11 +109,6 @@ def nsd_searchlight_main_tf(MODEL_NAMES, rdm_distance,
             subj_n_images = len(subj_sample)
             all_conditions = range(subj_n_images)
             subj_n_samples = int(subj_n_images // 100)
-
-            # Betas per subject
-            print(f"loading betas for {subj}")
-            betas_file = os.path.join(betas_dir, f"{subj}_betas_average_{targetspace}.npy")
-            betas = load_or_compute_betas_average(betas_file, nsd_dir, subj, n_sessions, conditions, conditions_sampled, targetspace)
             
             # initialise batch generator. Retrieves 100x100 sampled RDM from upper tri of 10000x10000 full RDM
             batchg = BatchGen(model_rdms, all_conditions)
@@ -145,6 +140,12 @@ def nsd_searchlight_main_tf(MODEL_NAMES, rdm_distance,
                 print(f"Loading 100x100 sample choices from {saved_samples_file}")
                 subj_sample_pool = np.load(saved_samples_file, allow_pickle=True)
 
+            # Betas per subject
+            print(f"loading betas for {subj}")
+            betas_file = os.path.join(betas_dir, f"{subj}_betas_average_{targetspace}.npy")
+            betas = load_or_compute_betas_average(betas_file, nsd_dir, subj, n_sessions, conditions, conditions_sampled, targetspace, subj_sample_pool)
+
+            return
             # run the searchlight mappings
             for j in range(subj_n_samples):
                 file_save = os.path.join(

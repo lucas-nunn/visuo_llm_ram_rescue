@@ -118,7 +118,7 @@ def pyplot_brains_from_models_list(models, contrast_models, base_dir,
 
     for model_name in models:
 
-        fsavg_data = get_fsavg_data_from_path(base_dir, model_name, layer)
+        fsavg_data = get_fsavg_data_from_path(base_dir, model_name, layer, n_subjects=1)
         if plot_indiv_sub:
             pyplot_indiv_subjects(fsavg_data, model_name, figpath, save_type=save_type, max_cmap_val=max_cmap_val)
         if plot_subj_avg:
