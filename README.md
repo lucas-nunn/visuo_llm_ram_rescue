@@ -3,14 +3,16 @@
 - fork of: https://github.com/adriendoerig/visuo_llm.git
 - exploratory replication-ish
 - trying to run on some other datasets
+- run fully on this PC: https://pcpartpicker.com/list/PggT34
+- mostly dealing with RAM bottleneck!
 
 ## results
 
-**subject 1, ten sessions, 8 sampled 100x100 RDMs:**
+**subject 1, 20 sessions, 25 sampled 100x100 RDMs:**
+![all-mpnet-base-v2 vs human brain](lucas_exploration/figures/all-mpnet-base-v2_subj01_20_sessions.png)
 
-- run fully on this PC: https://pcpartpicker.com/list/PggT34
-- mostly dealing with RAM bottleneck!
-  ![all-mpnet-base-v2 vs human brain](lucas_exploration/figures/all-mpnet-base-v2_subj01_10_sessions.png)
+**subject 1, 10 sessions, 8 sampled 100x100 RDMs:**
+![all-mpnet-base-v2 vs human brain](lucas_exploration/figures/all-mpnet-base-v2_subj01_10_sessions.png)
 
 ## Citation
 
