@@ -20,7 +20,7 @@ examples/_debug*
 examples/google_simclr_models
 results_dir
 *.png
-!lucas_exploration/figures/all-mpnet-base-v2_subj01-5-sessions-1-rdm.png
+!lucas_exploration/figures/*
 *.svg
 *.pkl
 *.npy
