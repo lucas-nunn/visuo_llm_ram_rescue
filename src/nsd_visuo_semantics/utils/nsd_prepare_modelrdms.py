@@ -18,8 +18,8 @@ def nsd_prepare_modelrdms(MODEL_NAMES, rdm_distance,
         MODEL_NAMES = [MODEL_NAMES]
 
     # initialise parameters
-    n_sessions = 40
-    n_subjects = 8
+    n_sessions = 20
+    n_subjects = 1
     subs = [f"subj0{x+1}" for x in range(n_subjects)]
 
     # specify where each set of nsd embeddings is saved

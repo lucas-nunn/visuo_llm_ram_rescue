@@ -6,11 +6,11 @@
 
 ## results
 
-**first successful(?) brain map with subject 1, first 5 sessions, one sampled 100x100 rdm, and probably several errors:**
+**subject 1, ten sessions, 8 sampled 100x100 RDMs:**
 
 - run fully on this PC: https://pcpartpicker.com/list/PggT34
 - mostly dealing with RAM bottleneck!
-  ![all-mpnet-base-v2 vs human brain](lucas_exploration/figures/all-mpnet-base-v2_subj01-5-sessions-1-rdm.png)
+  ![all-mpnet-base-v2 vs human brain](lucas_exploration/figures/all-mpnet-base-v2_subj01_10_sessions.png)
 
 ## Citation
 

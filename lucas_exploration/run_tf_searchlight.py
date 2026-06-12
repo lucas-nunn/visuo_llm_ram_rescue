@@ -21,20 +21,24 @@ with open(sl_centers, "rb") as fp:
 
 sorted_indices = sort_spheres(all_indices)
 
-mask = get_masks("data/NSD", "subj01", targetspace)
+mask = get_masks("/media/chuddy/120876114737F70A/data/NSD", "subj01", targetspace)
 n_voxels = list(mask.shape)
 
-betas_file = 'lucas_exploration/results/searchlight//betas/subj01_betas_average_func1pt8mm.npy'
-betas = np.load(betas_file, allow_pickle=True)
+betas_file = 'lucas_exploration/results/searchlight/betas/subj01_betas_average_func1pt8mm.npy'
+# memory-map: keep the averaged volume on disk and pull only the sampled
+# conditions per iteration (betas[:, :, :, choices]) instead of loading it all into RAM.
+betas = np.load(betas_file, mmap_mode='r')
 
 saved_samples_file = 'lucas_exploration/results/searchlight_respectedsampling_correlation/subj01/saved_sampling/subj01_nsd-allsubstim_sampling.npy'
 subj_sample_pool = np.load(saved_samples_file, allow_pickle=True)
 
-conditions, conditions_sampled, subj_sample = get_subject_conditions("data/NSD", "subj01", 5, keep_only_3repeats=True)
+conditions, conditions_sampled, subj_sample = get_subject_conditions("/media/chuddy/120876114737F70A/data/NSD", "subj01", 20, keep_only_3repeats=True)
 subj_n_images = len(subj_sample)
 all_conditions = range(subj_n_images)
 subj_n_samples = int(subj_n_images // 100)
     
+print(subj_n_images, subj_n_samples)
+
 model_rdms, model_names = get_model_rdms("lucas_exploration/results/serialised_models_correlation/all-mpnet-base-v2", "subj01", filt="all-mpnet-base-v2")
 batchg = BatchGen(model_rdms, all_conditions)
 

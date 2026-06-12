@@ -118,7 +118,7 @@ def nsd_searchlight_main_tf(MODEL_NAMES, rdm_distance,
 
             # compute sampling if we are computing mpnet and it does not exist yet, else load
             if not os.path.exists(saved_samples_file):
-                if MODEL_NAME == "mpnet":
+                if MODEL_NAME == "all-mpnet-base-v2":
                     print("Running MPNET and DID NOT FIND existing saved_samples_file. Computing from scratch.")
                     subj_sample_pool = []
                     for j in range(subj_n_samples):
@@ -143,7 +143,7 @@ def nsd_searchlight_main_tf(MODEL_NAMES, rdm_distance,
             # Betas per subject
             print(f"loading betas for {subj}")
             betas_file = os.path.join(betas_dir, f"{subj}_betas_average_{targetspace}.npy")
-            betas = load_or_compute_betas_average(betas_file, nsd_dir, subj, n_sessions, conditions, conditions_sampled, targetspace, subj_sample_pool)
+            betas = load_or_compute_betas_average(betas_file, nsd_dir, subj, n_sessions, conditions, conditions_sampled, targetspace)
 
             return
             # run the searchlight mappings

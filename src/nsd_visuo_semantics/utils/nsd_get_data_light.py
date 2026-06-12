@@ -125,26 +125,149 @@ def average_over_conditions(data, conditions, conditions_to_avg, sub):
     return avg_data
 
 
-def load_or_compute_betas_average(betas_file, nsd_dir, subj, n_sessions, conditions, conditions_sampled, targetspace, subj_sample_pool=None):
-    
+def compute_betas_average_streaming(betas_file, nsd_dir, subj, n_sessions,
+                                    conditions_sampled, targetspace="func1pt8mm"):
+    """Trial-average the 4D func1pt8mm betas in a single streaming pass.
+
+    This is a memory-frugal replacement for ``get_betas`` followed by
+    ``average_over_conditions`` for the volumetric (func1pt8mm) case. It never
+    materialises the full ``(x, y, z, n_trials)`` array (~40 GB for a 20-session
+    subject) and avoids the per-condition fancy indexing of
+    ``average_over_conditions`` (which re-read the whole array once per
+    condition - the slow step).
+
+    Each session file is opened exactly once, z-scored over its own trial axis
+    (identical to ``get_betas``), and every 3-repeat trial is accumulated into
+    the averaged volume at its condition slot. ``nanmean`` over the (exactly 3)
+    repeats is reproduced via a companion per-voxel count, so the output is
+    numerically identical to the original two-step pipeline. The averaged volume
+    is written straight to ``betas_file`` as an on-disk memmap and returned, so
+    callers never hold the ~28 GB array in RAM.
+    """
+    data_folder = os.path.join(nsd_dir, "nsddata_betas", "ppdata", subj,
+                               targetspace, "betas_fithrf_GLMdenoise_RR")
+
+    # conditions to keep, sorted & unique - averaged[..., j] corresponds to lookup[j],
+    # matching the ordering the rest of the pipeline (subj_sample) expects.
+    lookup = np.unique(conditions_sampled)
+    n_conds = int(lookup.shape[0])
+    # fast map from 73K id -> averaged-volume index (-1 for non-3-repeat ids)
+    idx_map = np.full(int(lookup.max()) + 1, -1, dtype=np.int64)
+    idx_map[lookup] = np.arange(n_conds)
+
+    # discover which sessions exist, and the volume shape (header only, no data load)
+    sessions = []
+    for ses in range(n_sessions):
+        ses_i = ses + 1
+        ses_file = os.path.join(data_folder, f"betas_session{str(ses_i).zfill(2)}.nii.gz")
+        if os.path.exists(ses_file):
+            sessions.append((ses_i, ses_file))
+    if not sessions:
+        raise FileNotFoundError(f"No session beta files found for {subj} in {data_folder}")
+    x, y, z = nb.load(sessions[0][1]).shape[:3]
+
+    # on-disk accumulators: sum is the eventual averaged volume; count tracks how
+    # many valid (non-zero-variance) repeats contributed per voxel/condition.
+    # Build into a temp file and atomically rename on success, so a crash mid-run
+    # does not leave a full-size-but-incomplete file that looks like a valid cache.
+    tmp_file = betas_file + ".tmp.npy"
+    count_file = betas_file + ".count_tmp.npy"
+    sum_mmap = open_memmap(tmp_file, mode="w+", dtype=np.float32, shape=(x, y, z, n_conds))
+    count_mmap = open_memmap(count_file, mode="w+", dtype=np.uint8, shape=(x, y, z, n_conds))
+
+    for ses_i, ses_file in sessions:
+        print(f"\r\t\tsub: {subj} averaging betas, session {ses_i}/{n_sessions}", end="")
+
+        # conditions in trial-presentation order (aligned with the betas' last axis)
+        ses_conditions = np.asarray(read_behavior(nsd_dir, subject=subj, session_index=ses_i)["73KID"])
+        # map to averaged index (-1 if not a 3-repeat condition). ids above the largest
+        # 3-repeat id are never in lookup, so guard the gather against out-of-range ids.
+        targets = np.full(ses_conditions.shape, -1, dtype=np.int64)
+        in_range = ses_conditions < idx_map.shape[0]
+        targets[in_range] = idx_map[ses_conditions[in_range]]
+        keep_idx = np.nonzero(targets >= 0)[0]
+        if keep_idx.size == 0:
+            continue
+
+        # load this session once and z-score per voxel across its trials (matches get_betas)
+        ses_betas = np.asarray(nb.load(ses_file).dataobj, dtype=np.float32)
+        ses_betas /= 300.0
+        mean = ses_betas.mean(axis=-1, keepdims=True)
+        std = ses_betas.std(axis=-1, keepdims=True)
+        ses_betas -= mean
+        ses_betas /= std                            # zero-variance voxels -> nan
+        # a voxel is valid for the whole session iff it had non-zero variance
+        valid3d = np.isfinite(std[..., 0]) & (std[..., 0] != 0.0)
+        ses_betas[~valid3d] = 0.0                   # nan voxels contribute 0 (and aren't counted)
+
+        # group this session's kept trials by condition (handles within-session repeats),
+        # summing each group's volumes with a single vectorised reduceat.
+        ks = targets[keep_idx]
+        order = np.argsort(ks, kind="stable")
+        ks_sorted = ks[order]
+        contrib = ses_betas[..., keep_idx[order]]   # (x, y, z, n_kept), sorted by condition
+        uniq, starts = np.unique(ks_sorted, return_index=True)
+        group_sums = np.add.reduceat(contrib, starts, axis=-1)
+        n_per_uniq = np.diff(np.append(starts, ks_sorted.size)).astype(np.uint8)
+
+        sum_mmap[..., uniq] += group_sums
+        count_mmap[..., uniq] += valid3d[..., None].astype(np.uint8) * n_per_uniq
+        sum_mmap.flush()
+        count_mmap.flush()
+
+        del ses_betas, mean, std, valid3d, contrib, group_sums
+    print()
+
+    # finalise: averaged = sum / count (nanmean), nan where no valid repeat contributed.
+    # done per x-slab so we never hold the full volume in RAM.
+    for xi in range(x):
+        c = count_mmap[xi]
+        s = sum_mmap[xi]
+        with np.errstate(invalid="ignore", divide="ignore"):
+            avg = s / c
+        avg[c == 0] = np.nan
+        sum_mmap[xi] = avg
+    sum_mmap.flush()
+
+    del count_mmap
+    if os.path.exists(count_file):
+        os.remove(count_file)
+
+    # publish atomically; the existing memmap stays valid (it maps the inode, not the name)
+    os.replace(tmp_file, betas_file)
+
+    return sum_mmap
+
+
+def load_or_compute_betas_average(betas_file, nsd_dir, subj, n_sessions, conditions, conditions_sampled, targetspace):
+
     if not os.path.exists(betas_file):
         print('betas average not found, computing..')
-        print('\tloading betas')
 
-        # get betas
-        betas = get_betas(nsd_dir, subj, n_sessions, targetspace=targetspace)
+        if targetspace == "func1pt8mm":
+            # memory-frugal single-pass averaging that writes betas_file directly as a memmap
+            print(f'\tstreaming + averaging betas for {subj}')
+            betas = compute_betas_average_streaming(betas_file, nsd_dir, subj, n_sessions, conditions_sampled, targetspace)
+        else:
+            print('\tloading betas')
+            # get betas
+            betas = get_betas(nsd_dir, subj, n_sessions, targetspace=targetspace)
 
-        # average betas across three repeats
-        print(f'\taveraging betas for {subj}')
-        betas = average_over_conditions(betas, conditions, conditions_sampled, subj)
+            # average betas across three repeats
+            print(f'\taveraging betas for {subj}')
+            betas = average_over_conditions(betas, conditions, conditions_sampled, subj)
 
-        # saving betas
-        print(f'saving betas for {subj}')
-        np.save(betas_file, betas, allow_pickle=True)
-        
+            # saving betas
+            print(f'saving betas for {subj}')
+            np.save(betas_file, betas, allow_pickle=True)
+
     else:
         print(f'loading betas for {subj}')
-        betas = np.load(betas_file, allow_pickle=True)
+        if targetspace == "func1pt8mm":
+            # keep the (large) volumetric betas on disk; callers slice the conditions they need
+            betas = np.load(betas_file, mmap_mode='r')
+        else:
+            betas = np.load(betas_file, allow_pickle=True)
 
     return betas
 
