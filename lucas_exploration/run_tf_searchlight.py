@@ -32,7 +32,7 @@ betas = np.load(betas_file, mmap_mode='r')
 saved_samples_file = 'lucas_exploration/results/searchlight_respectedsampling_correlation/subj01/saved_sampling/subj01_nsd-allsubstim_sampling.npy'
 subj_sample_pool = np.load(saved_samples_file, allow_pickle=True)
 
-conditions, conditions_sampled, subj_sample = get_subject_conditions("/media/chuddy/120876114737F70A/data/NSD", "subj01", 20, keep_only_3repeats=True)
+conditions, conditions_sampled, subj_sample = get_subject_conditions("/media/chuddy/120876114737F70A/data/NSD", "subj01", 10, keep_only_3repeats=True)
 subj_n_images = len(subj_sample)
 all_conditions = range(subj_n_images)
 subj_n_samples = int(subj_n_images // 100)

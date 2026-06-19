@@ -39,7 +39,6 @@ __pycache__/
 .Python
 env/
 .venv/
-.venv-rocm/
 build/
 develop-eggs/
 dist/

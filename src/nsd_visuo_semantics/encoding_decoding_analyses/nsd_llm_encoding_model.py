@@ -16,13 +16,13 @@ from nsd_visuo_semantics.utils.nsd_get_data_light import get_subject_conditions,
 def nsd_llm_encoding_model(EMBEDDING_MODEL_NAME, nsd_dir, betas_dir, base_save_dir):
 
     # params from nsd
-    n_sessions = 40
-    n_subjects = 8
+    n_sessions = 20
+    n_subjects = 1
     subs = [f"subj0{x + 1}" for x in range(n_subjects)]
     targetspace = "fsaverage"
 
     # fractional ridge regression parameters
-    n_alphas = 20
+    n_alphas = 1
     fracs = np.linspace(1/n_alphas, 1+1/n_alphas, n_alphas)  # from https://github.com/nrdg/fracridge/blob/master/examples/plot_alpha_vs_gamma.py
 
     # paths

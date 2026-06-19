@@ -19,20 +19,21 @@ dependencies = [
     "nltk>=3.9.2",
     "numpy>=2.0.2",
     "pandas>=2.3.3",
-    "pytorch-triton-rocm>=3.5.1 ; sys_platform == 'linux' and platform_machine == 'x86_64' and python_version >= '3.10'",
     "pycocotools>=2.0.11",
     "sentence-transformers>=5.1.2",
     "setuptools<82",
-    "tensorflow>=2.20.0",
+    "tensorflow[and-cuda]>=2.20.0",
     "tensorflow-hub>=0.16.1",
     "torch==2.11.* ; sys_platform == 'linux' and platform_machine == 'x86_64' and python_version >= '3.10'",
     "torchaudio==2.11.* ; sys_platform == 'linux' and platform_machine == 'x86_64' and python_version >= '3.10'",
     "torchvision==0.26.* ; sys_platform == 'linux' and platform_machine == 'x86_64' and python_version >= '3.10'",
-    "triton-rocm>=3.6.0 ; sys_platform == 'linux' and platform_machine == 'x86_64' and python_version >= '3.10'",
     "nsd-access",
     "nsdcode==1.1.dev260054000",
     "statsmodels>=0.14.6",
     "pycortex>=1.3.2",
+    "tensorflow-probability>=0.25.0",
+    "fracridge>=2.0",
+    "diffusers>=0.38.0",
 ]
 
 [project.urls]
@@ -75,19 +76,13 @@ environments = [
 
 [tool.uv.sources]
 torch = [
-    {index = "pytorch-rocm", marker = "sys_platform == 'linux' and platform_machine == 'x86_64' and python_version >= '3.10'"},
+    {index = "pytorch-cuda", marker = "sys_platform == 'linux' and platform_machine == 'x86_64' and python_version >= '3.10'"},
 ]
 torchvision = [
-    {index = "pytorch-rocm", marker = "sys_platform == 'linux' and platform_machine == 'x86_64' and python_version >= '3.10'"},
+    {index = "pytorch-cuda", marker = "sys_platform == 'linux' and platform_machine == 'x86_64' and python_version >= '3.10'"},
 ]
 torchaudio = [
-    {index = "pytorch-rocm", marker = "sys_platform == 'linux' and platform_machine == 'x86_64' and python_version >= '3.10'"},
-]
-pytorch-triton-rocm = [
-    {index = "pytorch-rocm", marker = "sys_platform == 'linux' and platform_machine == 'x86_64' and python_version >= '3.10'"},
-]
-triton-rocm = [
-    {index = "pytorch-rocm", marker = "sys_platform == 'linux' and platform_machine == 'x86_64' and python_version >= '3.10'"},
+    {index = "pytorch-cuda", marker = "sys_platform == 'linux' and platform_machine == 'x86_64' and python_version >= '3.10'"},
 ]
 nsd-access = { git = "https://github.com/tknapen/nsd_access.git" }
 
@@ -98,6 +93,9 @@ requires-python = ">=3.6"
 requires-dist = ["nibabel", "numpy", "scipy", "tqdm"]
 
 [[tool.uv.index]]
-name = "pytorch-rocm"
-url = "https://download.pytorch.org/whl/rocm7.2"
+name = "pytorch-cuda"
+# CUDA 12.9 build: natively supports Blackwell (sm_120, e.g. RTX 50-series) and
+# shares the same nvidia-*-cu12 runtime packages as tensorflow[and-cuda], so the
+# two frameworks coexist on a single CUDA 12 stack (no cu12/cu13 cudnn collision).
+url = "https://download.pytorch.org/whl/cu129"
 explicit = true

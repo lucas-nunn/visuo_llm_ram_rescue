@@ -1,6 +1,34 @@
 '''Helper that returns a dictionary with the paths to the embeddings and DNN activities files'''
 
-import itertools
+import glob
+import os
+import re
+
+
+def _add_sdvae_embedding_files(modelname2file, saved_embeddings_dir):
+    """Register Stable Diffusion VAE feature files created in lucas_exploration.
+
+    Expected filenames are emitted by lucas_exploration/stable_diffusion_vae_embeddings.ipynb:
+    nsd_sdvae_ft_mse_latents_256px.npy
+    nsd_sdvae_ft_mse_pca256_256px.npy
+
+    Model names with the image-size suffix are always added. For 256px files we also add
+    short aliases, e.g. sdvae_ft_mse_pca256, mirroring the simple MPNET-style names.
+    """
+    sdvae_pattern = os.path.join(saved_embeddings_dir, "nsd_sdvae_ft_mse_*.npy")
+    for file_path in sorted(glob.glob(sdvae_pattern)):
+        file_name = os.path.basename(file_path)
+        match = re.fullmatch(r"nsd_sdvae_ft_mse_(latents|pca\d+)_(\d+)px\.npy", file_name)
+        if match is None:
+            continue
+
+        feature_name, image_size = match.groups()
+        model_name = f"sdvae_ft_mse_{feature_name}"
+        sized_model_name = f"{model_name}_{image_size}px"
+        modelname2file[sized_model_name] = file_path
+        if image_size == "256":
+            modelname2file[model_name] = file_path
+
 
 def get_name2file_dict(saved_embeddings_dir, saved_dnn_activities_dir,
                        ecoset_saved_dnn_activities_dir):
@@ -38,6 +66,10 @@ def get_name2file_dict(saved_embeddings_dir, saved_dnn_activities_dir,
         "multihot_resnet50_finalLayer": f"{saved_dnn_activities_dir}/multihot_resnet50_finalLayer_nsd_image_features.pkl",
         "sceneCateg_resnet50_finalLayer": f"{saved_dnn_activities_dir}/sceneCateg_resnet50_finalLayer_nsd_image_features.pkl",
         'mpnet_scrambled': f"{saved_embeddings_dir}/nsd_all-mpnet-base-v2_mean_embeddings_scrambled.pkl",
+        "sdvae_ft_mse_latents": f"{saved_embeddings_dir}/nsd_sdvae_ft_mse_latents_256px.npy",
+        "sdvae_ft_mse_latents_256px": f"{saved_embeddings_dir}/nsd_sdvae_ft_mse_latents_256px.npy",
+        "sdvae_ft_mse_pca256": f"{saved_embeddings_dir}/nsd_sdvae_ft_mse_pca256_256px.npy",
+        "sdvae_ft_mse_pca256_256px": f"{saved_embeddings_dir}/nsd_sdvae_ft_mse_pca256_256px.npy",
 
         # DNNs trained on ecoset activities
         "dnn_ecoset_category": f"{ecoset_saved_dnn_activities_dir}/blt_vnet_category_post_gn_epoch80.h5",
@@ -67,5 +99,7 @@ def get_name2file_dict(saved_embeddings_dir, saved_dnn_activities_dir,
                                       'GUSE_transformer', 'GUSE_DAN', 'USE_CMLM_Base', 'T5']
     for SENTENCE_EMBEDDING_MODEL_TYPE in SENTENCE_EMBEDDING_MODEL_TYPES:
         modelname2file[SENTENCE_EMBEDDING_MODEL_TYPE] = f"{saved_embeddings_dir}/nsd_{SENTENCE_EMBEDDING_MODEL_TYPE}_mean_embeddings.pkl"
+
+    _add_sdvae_embedding_files(modelname2file, saved_embeddings_dir)
 
     return modelname2file

@@ -1,8 +1,0 @@
---find-links https://repo.radeon.com/rocm/manylinux/rocm-rel-7.2/
-
-tensorflow-rocm==2.20.0.dev0+selfbuilt
-numpy>=2.0.2
-scipy
-pandas>=2.3.3
-nibabel
-pillow

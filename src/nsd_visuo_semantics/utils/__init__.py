@@ -1,6 +1,6 @@
 from .batch_gen import BatchGen, give_vector_pos
 from .nsd_get_data_light import (get_model_rdms, get_masks, read_behavior, load_or_compute_betas_average,
-                                 compute_betas_average_streaming, get_betas,
+                                 compute_betas_average_streaming,
                                  get_conditions, get_conditions_1000, get_conditions_100, get_conditions_515, get_sentence_lists, get_rois)
 
 

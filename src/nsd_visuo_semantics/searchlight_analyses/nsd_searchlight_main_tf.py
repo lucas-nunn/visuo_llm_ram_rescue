@@ -11,6 +11,12 @@ from nsd_visuo_semantics.utils.batch_gen import BatchGen
 from nsd_visuo_semantics.utils.nsd_get_data_light import get_subject_conditions, get_masks, get_model_rdms, load_or_compute_betas_average
 from nsd_visuo_semantics.utils.utils import reorder_rdm
 
+
+def _can_initialize_shared_sampling(model_name):
+    """Models whose first run may create the model-agnostic 100-image samples."""
+    return model_name in ["all-mpnet-base-v2", "mpnet"] or model_name.startswith("sdvae_ft_mse")
+
+
 def nsd_searchlight_main_tf(MODEL_NAMES, rdm_distance, 
                             nsd_dir, precompsl_dir, betas_dir, base_save_dir, 
                             OVERWRITE):
@@ -22,7 +28,7 @@ def nsd_searchlight_main_tf(MODEL_NAMES, rdm_distance,
 
     # fixed parameters
     radius = 6
-    n_sessions = 20
+    n_sessions = 40
     targetspace = "func1pt8mm"
 
     # set up directories
@@ -36,7 +42,7 @@ def nsd_searchlight_main_tf(MODEL_NAMES, rdm_distance,
         print(f"Loading serialised model rdms from {models_dir}")
 
         # loop over subjects
-        for subject in range(8):
+        for subject in range(1):
             # define subject
             sub = subject + 1
             # format subject
@@ -116,10 +122,10 @@ def nsd_searchlight_main_tf(MODEL_NAMES, rdm_distance,
             # now we start the sampling procedure
             saved_samples_file = os.path.join(samples_dir, f"{subj}_nsd-allsubstim_sampling.npy")
 
-            # compute sampling if we are computing mpnet and it does not exist yet, else load
+            # compute shared sampling for approved reference models if it does not exist yet, else load
             if not os.path.exists(saved_samples_file):
-                if MODEL_NAME == "all-mpnet-base-v2":
-                    print("Running MPNET and DID NOT FIND existing saved_samples_file. Computing from scratch.")
+                if _can_initialize_shared_sampling(MODEL_NAME):
+                    print(f"Running {MODEL_NAME} and DID NOT FIND existing saved_samples_file. Computing from scratch.")
                     subj_sample_pool = []
                     for j in range(subj_n_samples):
                         choices = np.random.choice(all_conditions, 100, replace=False)
@@ -129,11 +135,10 @@ def nsd_searchlight_main_tf(MODEL_NAMES, rdm_distance,
                     np.save(saved_samples_file, subj_sample_pool)
                 else:
                     raise FileNotFoundError(
-                        "Saved samples not found for MPNET. Raising an error for security."
+                        "Saved samples not found. Raising an error for security."
                         f"\n Looked in {saved_samples_file}"
-                        "What happens here is that we try to load the 100x100 samples used for the original"
-                        "MPNET sampling procedure, and reapply them for subsequent models, for fair"
-                        "comparisons."
+                        "\nWhat happens here is that we try to load the 100x100 samples used for the original "
+                        "sampling procedure, and reapply them for subsequent models, for fair comparisons."
                         "\nIf the samples should already be computed, please check saved_samples_file"
                     )
             else:
@@ -145,7 +150,6 @@ def nsd_searchlight_main_tf(MODEL_NAMES, rdm_distance,
             betas_file = os.path.join(betas_dir, f"{subj}_betas_average_{targetspace}.npy")
             betas = load_or_compute_betas_average(betas_file, nsd_dir, subj, n_sessions, conditions, conditions_sampled, targetspace)
 
-            return
             # run the searchlight mappings
             for j in range(subj_n_samples):
                 file_save = os.path.join(
