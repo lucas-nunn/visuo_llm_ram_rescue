@@ -30,6 +30,35 @@ def _add_sdvae_embedding_files(modelname2file, saved_embeddings_dir):
             modelname2file[model_name] = file_path
 
 
+def _add_betavae_embedding_files(modelname2file, saved_embeddings_dir):
+    """Register NSD beta-VAE feature files created in lucas_exploration.
+
+    Expected full-run filenames are emitted by
+    lucas_exploration/beta_vae_nsd.py:
+    nsd_betavae_beta4_seed0_zmean_128px.npy
+
+    Partial smoke-test exports include a rows suffix and are intentionally not
+    registered for RDM construction.
+    """
+    betavae_pattern = os.path.join(
+        saved_embeddings_dir, "nsd_betavae_beta*_seed*_zmean_*px.npy"
+    )
+    for file_path in sorted(glob.glob(betavae_pattern)):
+        file_name = os.path.basename(file_path)
+        match = re.fullmatch(
+            r"nsd_(betavae_beta[^_]+_seed\d+_zmean)_(\d+)px\.npy",
+            file_name,
+        )
+        if match is None:
+            continue
+
+        model_name, image_size = match.groups()
+        sized_model_name = f"{model_name}_{image_size}px"
+        modelname2file[sized_model_name] = file_path
+        if image_size == "128":
+            modelname2file[model_name] = file_path
+
+
 def get_name2file_dict(saved_embeddings_dir, saved_dnn_activities_dir,
                        ecoset_saved_dnn_activities_dir):
 
@@ -101,5 +130,6 @@ def get_name2file_dict(saved_embeddings_dir, saved_dnn_activities_dir,
         modelname2file[SENTENCE_EMBEDDING_MODEL_TYPE] = f"{saved_embeddings_dir}/nsd_{SENTENCE_EMBEDDING_MODEL_TYPE}_mean_embeddings.pkl"
 
     _add_sdvae_embedding_files(modelname2file, saved_embeddings_dir)
+    _add_betavae_embedding_files(modelname2file, saved_embeddings_dir)
 
     return modelname2file
