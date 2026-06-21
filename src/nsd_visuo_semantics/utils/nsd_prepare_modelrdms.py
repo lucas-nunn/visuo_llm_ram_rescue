@@ -41,14 +41,12 @@ def _load_feature_matrix(model_name, model_file):
 def nsd_prepare_modelrdms(MODEL_NAMES, rdm_distance,
                                saved_embeddings_dir, rdms_dir, nsd_dir,
                                ms_coco_saved_dnn_activities_dir, ecoset_saved_dnn_activities_dir, 
-                               OVERWRITE, RCNN_LAYER=None):
+                               OVERWRITE, RCNN_LAYER=None, n_sessions=20, n_subjects=1):
     
     if not isinstance(MODEL_NAMES, list):
         MODEL_NAMES = [MODEL_NAMES]
 
     # initialise parameters
-    n_sessions = 10
-    n_subjects = 1
     subs = [f"subj0{x+1}" for x in range(n_subjects)]
 
     # specify where each set of nsd embeddings is saved

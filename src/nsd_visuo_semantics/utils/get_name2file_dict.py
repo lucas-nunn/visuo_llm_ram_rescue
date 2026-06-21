@@ -59,6 +59,35 @@ def _add_betavae_embedding_files(modelname2file, saved_embeddings_dir):
             modelname2file[model_name] = file_path
 
 
+def _add_simple_betavae_embedding_files(modelname2file, saved_embeddings_dir):
+    """Register simple beta-VAE feature files created in lucas_exploration.
+
+    Expected filenames are emitted by
+    lucas_exploration/betavae_nsd_embeddings.py, e.g.:
+    nsd_simplebetavae_beta4_z32_seed0_64px.npy
+
+    These come from the small paper-faithful beta-VAE in lucas_exploration/VAE.py
+    (64px, sigmoid/BCE, [0, 1] inputs) and are kept distinct from the 128px
+    betavae_*_zmean family above. Both the size-suffixed name and a short alias
+    are registered. Partial smoke-test exports carry a rows suffix and are
+    intentionally not matched.
+    """
+    pattern = os.path.join(
+        saved_embeddings_dir, "nsd_simplebetavae_beta*_z*_seed*_*px.npy"
+    )
+    for file_path in sorted(glob.glob(pattern)):
+        file_name = os.path.basename(file_path)
+        match = re.fullmatch(
+            r"nsd_(simplebetavae_beta[^_]+_z\d+_seed\d+)_(\d+)px\.npy",
+            file_name,
+        )
+        if match is None:
+            continue
+        model_name, image_size = match.groups()
+        modelname2file[f"{model_name}_{image_size}px"] = file_path
+        modelname2file[model_name] = file_path
+
+
 def get_name2file_dict(saved_embeddings_dir, saved_dnn_activities_dir,
                        ecoset_saved_dnn_activities_dir):
 
@@ -131,5 +160,6 @@ def get_name2file_dict(saved_embeddings_dir, saved_dnn_activities_dir,
 
     _add_sdvae_embedding_files(modelname2file, saved_embeddings_dir)
     _add_betavae_embedding_files(modelname2file, saved_embeddings_dir)
+    _add_simple_betavae_embedding_files(modelname2file, saved_embeddings_dir)
 
     return modelname2file

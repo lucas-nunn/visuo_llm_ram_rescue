@@ -14,12 +14,12 @@ from nsd_visuo_semantics.utils.utils import reorder_rdm
 
 def _can_initialize_shared_sampling(model_name):
     """Models whose first run may create the model-agnostic 100-image samples."""
-    return model_name in ["all-mpnet-base-v2", "mpnet"] or model_name.startswith("sdvae_ft_mse")
+    return model_name in ["all-mpnet-base-v2", "mpnet", "simplebetavae_beta4_z32_seed0_64px"] or model_name.startswith("sdvae_ft_mse")
 
 
 def nsd_searchlight_main_tf(MODEL_NAMES, rdm_distance, 
                             nsd_dir, precompsl_dir, betas_dir, base_save_dir, 
-                            OVERWRITE):
+                            OVERWRITE, n_subjects=1, n_sessions=20):
 
     initial_time = time.time()
 
@@ -28,7 +28,6 @@ def nsd_searchlight_main_tf(MODEL_NAMES, rdm_distance,
 
     # fixed parameters
     radius = 6
-    n_sessions = 40
     targetspace = "func1pt8mm"
 
     # set up directories
@@ -42,7 +41,7 @@ def nsd_searchlight_main_tf(MODEL_NAMES, rdm_distance,
         print(f"Loading serialised model rdms from {models_dir}")
 
         # loop over subjects
-        for subject in range(1):
+        for subject in range(n_subjects):
             # define subject
             sub = subject + 1
             # format subject

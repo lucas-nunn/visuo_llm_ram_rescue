@@ -3,6 +3,7 @@ blt_mpnet/
 lucas_exploration/input/
 lucas_exploration/results/
 freesurfer*
+COCO/
 
 # Custom
 src/nsd_visuo_semantics/get_embeddings/crawl-300d-2M.vec
