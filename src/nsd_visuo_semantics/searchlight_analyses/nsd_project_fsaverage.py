@@ -11,8 +11,18 @@ import numpy as np
 from nsdcode.nsd_mapdata import NSDmapdata
 from tqdm import tqdm
 
+# nsdcode still references the NumPy alias removed in NumPy 2.0.
+if not hasattr(np, "int"):
+    np.int = int
 
-def nsd_project_fsaverage(MODEL_NAMES, models_rdm_distance, nsd_dir, base_save_dir):
+
+def nsd_project_fsaverage(
+    MODEL_NAMES,
+    models_rdm_distance,
+    nsd_dir,
+    base_save_dir,
+    subjects=None,
+):
     
     # initiate NSDmapdata
     nsd = NSDmapdata(nsd_dir)  # Takes subject data in mni and project to freesurfer, etcetc. All the transformations that we can do to the data can be done with this
@@ -20,8 +30,9 @@ def nsd_project_fsaverage(MODEL_NAMES, models_rdm_distance, nsd_dir, base_save_d
     # NSD fsaverage stuff
     fs_dir = os.path.join(nsd.base_dir, "nsddata", "freesurfer", "fsaverage")
 
-    # fixed parameters
-    n_subjects = 1
+    if subjects is None:
+        subjects = [1]
+    subjects = [int(subject) for subject in subjects]
 
     # per subject vox sizes
     voxelsizes = [
@@ -59,9 +70,12 @@ def nsd_project_fsaverage(MODEL_NAMES, models_rdm_distance, nsd_dir, base_save_d
             f"{MODEL_NAME}{MODEL_SUFFIX}_{models_rdm_distance}_fsaverage",
         )
 
-        for subjix in range(n_subjects):
+        for subject in subjects:
+            subjix = subject - 1
+            if subjix < 0 or subjix >= len(voxelsizes):
+                raise ValueError(f"Subject must be in 1..{len(voxelsizes)}, got {subject}")
             # specify subject full name
-            this_sub = f"subj0{subjix+1}"
+            this_sub = f"subj{subject:02d}"
             output_dir = data_dir_fsav.format(this_sub)
             os.makedirs(output_dir, exist_ok=True)
 
@@ -76,6 +90,10 @@ def nsd_project_fsaverage(MODEL_NAMES, models_rdm_distance, nsd_dir, base_save_d
             sample_files.sort()  # need alphabetical order
 
             n_samples = len(sample_files)
+            if n_samples == 0:
+                raise FileNotFoundError(
+                    f"No searchlight sample files found in {subj_dir}"
+                )
 
             this_sample = sample_files[0]
             print(f"\treading in {this_sample}\n")

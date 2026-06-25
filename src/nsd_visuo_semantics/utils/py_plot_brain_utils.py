@@ -1,8 +1,39 @@
-import cortex, os, shutil, warnings
+import cortex, os, shutil, sys, warnings
+from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import ttest_1samp
 from statsmodels.stats.multitest import multipletests
+
+
+def _ensure_pycortex_filestore():
+    """Use this environment's pycortex database after a repository move.
+
+    Pycortex persists absolute paths in ``~/.config/pycortex/options.cfg``.
+    When a virtual environment is moved with its repository, that configuration
+    can still point to the old location even though the complete database is
+    present under the active environment.
+    """
+    configured = Path(cortex.db.filestore)
+    required_surface = configured / "fsaverage" / "surfaces" / "wm_lh.gii"
+    if required_surface.exists():
+        return
+
+    env_share = Path(sys.prefix) / "share" / "pycortex"
+    candidate = env_share / "db"
+    candidate_surface = candidate / "fsaverage" / "surfaces" / "wm_lh.gii"
+    if not candidate_surface.exists():
+        raise FileNotFoundError(
+            "Pycortex fsaverage surfaces are unavailable. Checked "
+            f"{required_surface} and {candidate_surface}."
+        )
+
+    cortex.db.filestore = str(candidate)
+    cortex.db._subjects = None
+    cortex.options.config.set("basic", "filestore", str(candidate))
+    colormaps = env_share / "colormaps"
+    if colormaps.is_dir():
+        cortex.options.config.set("basic", "colormaps", str(colormaps))
 
 
 def _pycortex_svg_overlays_available():
@@ -74,6 +105,7 @@ def pyplot_brain(fsavg_data, savename, figpath, save_type='png', max_cmap_val=No
                  roi_linecolor="black", roi_linewidth=0.8):
 
     os.makedirs(figpath, exist_ok=True)
+    _ensure_pycortex_filestore()
 
     if max_cmap_val is None:
         boundar = np.nanmax(np.abs(fsavg_data))
@@ -141,15 +173,23 @@ def pyplot_indiv_subjects(fsavg_data_allsub, savename, figpath, save_type='png',
                           max_cmap_val=None, with_rois=False, with_sulci=False,
                           with_labels=True, roi_list=None, roi_overlay=None,
                           nsd_dir=None, roi_defs_dir=None, roi_ids=None,
-                          roi_linecolor="black", roi_linewidth=0.8):
+                          roi_linecolor="black", roi_linewidth=0.8,
+                          subject_ids=None):
     '''
     fsavg_data_allsub: [n_subj, n_fsavg_voxels]'''
     
-    for s in range(fsavg_data_allsub.shape[0]):
+    if subject_ids is None:
+        subject_ids = list(range(1, fsavg_data_allsub.shape[0] + 1))
+    if len(subject_ids) != fsavg_data_allsub.shape[0]:
+        raise ValueError(
+            "subject_ids must contain one subject number per data row"
+        )
+
+    for s, subject_id in enumerate(subject_ids):
         fsavg_data = fsavg_data_allsub[s]
         pyplot_brain(
             fsavg_data,
-            f'{savename}_subj{s+1:02}',
+            f'{savename}_subj{subject_id:02d}',
             figpath,
             save_type=save_type,
             max_cmap_val=max_cmap_val,
@@ -217,7 +257,8 @@ def pyplot_subj_avg(fsavg_data_allsub, savename, figpath, sig_mask='fdr_bh',
 
 
 def get_fsavg_data_from_path(base_dir, model_name, layer_id, model_suffix='', 
-                             n_subjects=8, n_vertices=327684, hemis=['lh', 'rh']):
+                             n_subjects=8, n_vertices=327684, hemis=['lh', 'rh'],
+                             subjects=None):
     '''
     NOTE: we will format the datapath string using the arguments passed here. make sure
     they correspond to the way things are saved in the base_dir.
@@ -226,17 +267,21 @@ def get_fsavg_data_from_path(base_dir, model_name, layer_id, model_suffix='',
 
     datapath = os.path.join(base_dir, '%s', model_name, '%s_correlation_fsaverage', '%s.%s-model-%s-surf.npy')
 
-    main_data = np.zeros((n_subjects, n_vertices), dtype=np.float32)
+    if subjects is None:
+        subjects = list(range(1, n_subjects + 1))
+    subjects = [int(subject) for subject in subjects]
+
+    main_data = np.zeros((len(subjects), n_vertices), dtype=np.float32)
     # loop over subjects
-    for sub in range(n_subjects):
-        subj = f'subj{(1+sub):02d}'
+    for row, subject in enumerate(subjects):
+        subj = f'subj{subject:02d}'
         sub_data = []
         for this_hemi in hemis:
             if 'dnn' in model_name:
                 sub_data.append(np.load(datapath % (subj, model_name + model_suffix, this_hemi, subj, str(layer_id))))
             else:
                 sub_data.append(np.load(datapath % (subj, model_name + model_suffix, this_hemi, subj, str(1))))
-        main_data[sub, :] = np.concatenate(sub_data)
+        main_data[row, :] = np.concatenate(sub_data)
 
     return main_data
 
@@ -250,7 +295,8 @@ def pyplot_brains_from_models_list(models, contrast_models, base_dir,
                                    with_labels=True, roi_list=None,
                                    roi_overlay=None, nsd_dir=None,
                                    roi_defs_dir=None, roi_ids=None,
-                                   roi_linecolor="black", roi_linewidth=0.8):
+                                   roi_linecolor="black", roi_linewidth=0.8,
+                                   subjects=None):
     '''models: list of model names to plot
     contrast_models: list of model names to use as contrast
     base_dir: base directory where the data is saved
@@ -277,7 +323,13 @@ def pyplot_brains_from_models_list(models, contrast_models, base_dir,
 
     for model_name in models:
 
-        fsavg_data = get_fsavg_data_from_path(base_dir, model_name, layer, n_subjects=1)
+        selected_subjects = [1] if subjects is None else list(subjects)
+        fsavg_data = get_fsavg_data_from_path(
+            base_dir,
+            model_name,
+            layer,
+            subjects=selected_subjects,
+        )
         if plot_indiv_sub:
             pyplot_indiv_subjects(
                 fsavg_data,
@@ -295,6 +347,7 @@ def pyplot_brains_from_models_list(models, contrast_models, base_dir,
                 roi_ids=roi_ids,
                 roi_linecolor=roi_linecolor,
                 roi_linewidth=roi_linewidth,
+                subject_ids=selected_subjects,
             )
         if plot_subj_avg:
             pyplot_subj_avg(
@@ -321,7 +374,12 @@ def pyplot_brains_from_models_list(models, contrast_models, base_dir,
             if not contrast_same_model and contrast_model_name == model_name:
                 continue
 
-            fsavg_data_contrast = get_fsavg_data_from_path(base_dir, contrast_model_name, contrast_layer)
+            fsavg_data_contrast = get_fsavg_data_from_path(
+                base_dir,
+                contrast_model_name,
+                contrast_layer,
+                subjects=selected_subjects,
+            )
             
             fsavg_data_diff = fsavg_data - fsavg_data_contrast
             if plot_indiv_sub:
@@ -341,6 +399,7 @@ def pyplot_brains_from_models_list(models, contrast_models, base_dir,
                     roi_ids=roi_ids,
                     roi_linecolor=roi_linecolor,
                     roi_linewidth=roi_linewidth,
+                    subject_ids=selected_subjects,
                 )
             if plot_subj_avg:
                 pyplot_subj_avg(
