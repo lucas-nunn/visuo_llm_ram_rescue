@@ -14,7 +14,7 @@ from nsd_visuo_semantics.utils.utils import reorder_rdm
 
 def _can_initialize_shared_sampling(model_name):
     """Models whose first run may create the model-agnostic 100-image samples."""
-    return model_name in ["all-mpnet-base-v2", "mpnet", "simplebetavae_beta4_z32_seed0_64px"] or model_name.startswith("sdvae_ft_mse")
+    return model_name in ["all-mpnet-base-v2", "mpnet", "simplebetavae_beta4_z32_seed0_64px"] or model_name.startswith("sdvae_ft_mse") or model_name.startswith("pixels_")
 
 
 def nsd_searchlight_main_tf(model_name, rdm_distance,

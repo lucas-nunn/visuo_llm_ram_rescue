@@ -88,6 +88,35 @@ def _add_simple_betavae_embedding_files(modelname2file, saved_embeddings_dir):
         modelname2file[model_name] = file_path
 
 
+def _add_pixel_embedding_files(modelname2file, saved_embeddings_dir):
+    """Register raw-pixel feature files created in lucas_exploration.
+
+    Expected filenames are emitted by
+    lucas_exploration/pixel_nsd_embeddings.py, e.g.:
+    nsd_pixels_rgb_64px.npy
+    nsd_pixels_gray_128px.npy
+
+    These are the flattened-pixel baseline for the searchlight (low-level image
+    statistics, no model). Both the size-suffixed name and a short alias are
+    registered. Partial smoke-test exports carry a rows suffix and are
+    intentionally not matched.
+    """
+    pattern = os.path.join(saved_embeddings_dir, "nsd_pixels_*px.npy")
+    for file_path in sorted(glob.glob(pattern)):
+        file_name = os.path.basename(file_path)
+        match = re.fullmatch(
+            r"nsd_(pixels_(?:rgb|gray)_\d+px)\.npy",
+            file_name,
+        )
+        if match is None:
+            continue
+        sized_model_name = match.group(1)
+        modelname2file[sized_model_name] = file_path
+        # also register a colorspace-only alias (e.g. pixels_rgb), pointing at the
+        # last-sorted size when several resolutions exist.
+        modelname2file[sized_model_name.rsplit("_", 1)[0]] = file_path
+
+
 def get_name2file_dict(saved_embeddings_dir, saved_dnn_activities_dir,
                        ecoset_saved_dnn_activities_dir):
 
@@ -161,5 +190,6 @@ def get_name2file_dict(saved_embeddings_dir, saved_dnn_activities_dir,
     _add_sdvae_embedding_files(modelname2file, saved_embeddings_dir)
     _add_betavae_embedding_files(modelname2file, saved_embeddings_dir)
     _add_simple_betavae_embedding_files(modelname2file, saved_embeddings_dir)
+    _add_pixel_embedding_files(modelname2file, saved_embeddings_dir)
 
     return modelname2file
