@@ -113,3 +113,8 @@ venv/
 
 # written by setuptools_scm
 **/_version.py
+
+# Local run logs / profiler traces / tooling
+*.stdout
+*.btr
+.claude/

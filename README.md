@@ -15,14 +15,25 @@
 
 **subject 1, 20 sessions, 25 sampled 100x100 RDMs:**
 
+mpnet validation
+![all-mpnet-base-v2 vs human brain](lucas_exploration/figures/all-mpnet-base-v2_subj01_20_sessions.png)
+
 custom mini beta VAE trained on MS COCO 2014 train set
 ![beta VAE vs human brain](lucas_exploration/figures/simplebetavae_beta4_z32_seed0_64px_subj01.png)
 
-mpnet base v2
-![all-mpnet-base-v2 vs human brain](lucas_exploration/figures/all-mpnet-base-v2_subj01_20_sessions.png)
+pretrained stable diffusion VAE
+![stable diffusion VAE vs human brain](lucas_exploration/figures/sdvae_ft_mse_latents_subj01.png)
 
-**subject 1, 10 sessions, 8 sampled 100x100 RDMs:**
-![all-mpnet-base-v2 vs human brain](lucas_exploration/figures/all-mpnet-base-v2_subj01_10_sessions.png)
+pixel space of NSD images
+![pixel space vs human brain](lucas_exploration/figures/pixels_rgb_64px_subj01_20_sessions.png)
+
+**subject 2, 20 sessions, 25 sampled 100x100 RDMs:**
+
+mpnet validation
+![all-mpnet-base-v2 vs human brain](lucas_exploration/figures/all-mpnet-base-v2_subj02_20_sessions.png)
+
+pixel space of NSD images
+![pixel space vs human brain](lucas_exploration/figures/pixels_rgb_64px_subj02_20_sessions.png)
 
 ## Citation
 
